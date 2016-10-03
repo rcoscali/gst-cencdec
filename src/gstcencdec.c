@@ -98,21 +98,37 @@ enum
 /* pad templates */
 
 static GstStaticPadTemplate gst_cenc_decrypt_sink_template =
-    GST_STATIC_PAD_TEMPLATE ("sink",
-    GST_PAD_SINK,
-    GST_PAD_ALWAYS,
-    GST_STATIC_CAPS
-    ("application/x-cenc, original-media-type=(string)video/x-h264, protection-system=(string)69f908af-4816-46ea-910c-cd5dcccb0a3a; "
-        "application/x-cenc, original-media-type=(string)video/x-h264, protection-system=(string)5e629af5-38da-4063-8977-97ffbd9902d4; "
-        "application/x-cenc, original-media-type=(string)audio/mpeg, protection-system=(string)69f908af-4816-46ea-910c-cd5dcccb0a3a; "
-        "application/x-cenc, original-media-type=(string)audio/mpeg, protection-system=(string)5e629af5-38da-4063-8977-97ffbd9902d4")
-    );
+  GST_STATIC_PAD_TEMPLATE ("sink",
+			   GST_PAD_SINK,
+			   GST_PAD_ALWAYS,
+			   GST_STATIC_CAPS
+			   (
+			    "application/x-cenc, original-media-type=(string)video/x-h264, protection-system=(string)69f908af-4816-46ea-910c-cd5dcccb0a3a; "
+			    "application/x-cenc, original-media-type=(string)video/x-h264, protection-system=(string)5e629af5-38da-4063-8977-97ffbd9902d4; "
+			    "application/x-cenc, original-media-type=(string)video/x-h264, protection-system=(string)00000000-0000-0000-0000-000000000000; "
+			    "application/x-cenc, original-media-type=(string)video/quicktime, protection-system=(string)69f908af-4816-46ea-910c-cd5dcccb0a3a; "
+			    "application/x-cenc, original-media-type=(string)video/quicktime, protection-system=(string)5e629af5-38da-4063-8977-97ffbd9902d4; "
+			    "application/x-cenc, original-media-type=(string)video/quicktime, protection-system=(string)00000000-0000-0000-0000-000000000000; "
+			    "application/x-cenc, original-media-type=(string)video/mj2, protection-system=(string)69f908af-4816-46ea-910c-cd5dcccb0a3a; "
+			    "application/x-cenc, original-media-type=(string)video/mj2, protection-system=(string)5e629af5-38da-4063-8977-97ffbd9902d4; "
+			    "application/x-cenc, original-media-type=(string)video/mj2, protection-system=(string)00000000-0000-0000-0000-000000000000; "
+			    "application/x-cenc, original-media-type=(string)audio/mpeg, protection-system=(string)69f908af-4816-46ea-910c-cd5dcccb0a3a; "
+			    "application/x-cenc, original-media-type=(string)audio/mpeg, protection-system=(string)5e629af5-38da-4063-8977-97ffbd9902d4; "
+			    "application/x-cenc, original-media-type=(string)audio/mpeg, protection-system=(string)00000000-0000-0000-0000-000000000000"
+			    "application/x-cenc, original-media-type=(string)audio/x-m4a, protection-system=(string)69f908af-4816-46ea-910c-cd5dcccb0a3a; "
+			    "application/x-cenc, original-media-type=(string)audio/x-m4a, protection-system=(string)5e629af5-38da-4063-8977-97ffbd9902d4; "
+			    "application/x-cenc, original-media-type=(string)audio/x-m4a, protection-system=(string)00000000-0000-0000-0000-000000000000"
+			    "application/x-cenc, original-media-type=(string)application/x-3gp, protection-system=(string)69f908af-4816-46ea-910c-cd5dcccb0a3a; "
+			    "application/x-cenc, original-media-type=(string)application/x-3gp, protection-system=(string)5e629af5-38da-4063-8977-97ffbd9902d4; "
+			    "application/x-cenc, original-media-type=(string)application/x-3gp, protection-system=(string)00000000-0000-0000-0000-000000000000"
+			    )
+			   );
 
 static GstStaticPadTemplate gst_cenc_decrypt_src_template =
     GST_STATIC_PAD_TEMPLATE ("src",
     GST_PAD_SRC,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS ("video/x-h264; audio/mpeg")
+    GST_STATIC_CAPS ("video/x-h264; video/h264; video/x-h265; video/h265; audio/mpeg")
     );
 
 
@@ -326,7 +342,16 @@ gst_cenc_decrypt_transform_caps (GstBaseTransform * base,
 
       out = gst_structure_copy (tmp);
       gst_structure_set (out,
-          "protection-system", G_TYPE_STRING, "5e629af5-38da-4063-8977-97ffbd9902d4",
+          "protection-system", G_TYPE_STRING, "69f908af-4816-46ea-910c-cd5dcccb0a3a",
+          "original-media-type", G_TYPE_STRING, gst_structure_get_name (in),
+          NULL);
+
+      gst_structure_set_name (out, "application/x-cenc");
+      gst_cenc_decrypt_append_if_not_duplicate(res, out);
+
+      out = gst_structure_copy (tmp);
+      gst_structure_set (out,
+          "protection-system", G_TYPE_STRING, "00000000-0000-0000-0000-000000000000",
           "original-media-type", G_TYPE_STRING, gst_structure_get_name (in),
           NULL);
 
@@ -373,7 +398,7 @@ gst_cenc_create_content_id (gconstpointer key_id)
   gchar *id_string = g_malloc0 (id_string_length);
 
   g_snprintf (id_string, id_string_length,
-      "urn:marlin:kid:%02x%02x%02x%02x%02x%02x%02x%02x"
+      "urn:69f908af-4816-46ea-910c-cd5dcccb0a3a:kid:%02x%02x%02x%02x%02x%02x%02x%02x"
       "%02x%02x%02x%02x%02x%02x%02x%02x",
       id[0], id[1], id[2], id[3], id[4], id[5], id[6], id[7],
       id[8], id[9], id[10], id[11], id[12], id[13], id[14], id[15]);
@@ -388,14 +413,14 @@ gst_cenc_decrypt_key_id_from_content_id(GstCencDecrypt * self, const gchar *cont
   GstMapInfo map;
   gboolean failed=FALSE;
   guint i,pos;
-  /*gchar *id_string;*/
+  gchar *id_string;
 
-  if(!g_str_has_prefix (content_id, "urn:marlin:kid:")){
+  if(!g_str_has_prefix (content_id, "urn:69f908af-4816-46ea-910c-cd5dcccb0a3a:kid:")){
     return NULL;
   }
   kid = gst_buffer_new_allocate (NULL, KID_LENGTH, NULL);
   gst_buffer_map (kid, &map, GST_MAP_READWRITE);
-  for(i=0, pos=strlen("urn:marlin:kid:"); i<KID_LENGTH; ++i){
+  for(i=0, pos=strlen("urn:69f908af-4816-46ea-910c-cd5dcccb0a3a:kid:"); i<KID_LENGTH; ++i){
     guint b;
     if(!sscanf(&content_id[pos], "%02x", &b)){
       failed=TRUE;
@@ -404,9 +429,9 @@ gst_cenc_decrypt_key_id_from_content_id(GstCencDecrypt * self, const gchar *cont
     map.data[i] = b;
     pos += 2;
   }
-  /*id_string = gst_cenc_create_uuid_string (map.data);
+  id_string = gst_cenc_create_uuid_string (map.data);
   GST_DEBUG_OBJECT (self, "content_id=%s  key=%s", content_id, id_string);
-  g_free (id_string);*/
+  g_free (id_string);
   gst_buffer_unmap (kid, &map);
   if(failed){
     gst_buffer_unref (kid);
@@ -562,17 +587,19 @@ gst_cenc_decrypt_transform_ip (GstBaseTransform * base, GstBuffer * buf)
     goto release;
   }
 
-  GST_TRACE_OBJECT (self, "decrypt sample %d", map.size);
+  GST_TRACE_OBJECT (self, "Number of samples to decrypt: %d", map.size);
   if(!gst_structure_get_uint(prot_meta->info,"iv_size",&iv_size)){
     GST_ERROR_OBJECT (self, "failed to get iv_size");
     ret = GST_FLOW_NOT_SUPPORTED;
     goto release;
   }
+  GST_TRACE_OBJECT (self, "IV size: %d", iv_size);
   if(!gst_structure_get_boolean(prot_meta->info,"encrypted",&encrypted)){
     GST_ERROR_OBJECT (self, "failed to get encrypted flag");
     ret = GST_FLOW_NOT_SUPPORTED;
     goto release;
   }
+  GST_TRACE_OBJECT (self, "Encrypted stream: %s", encrypted ? "Yes" : "No");
   if (iv_size == 0 || !encrypted) {
     /* sample is not encrypted */
     goto beach;
@@ -824,6 +851,8 @@ gst_cenc_decrypt_sink_event_handler (GstBaseTransform * trans, GstEvent * event)
   GstBuffer *pssi = NULL;
   const gchar *loc;
   GstCencDecrypt *self = GST_CENC_DECRYPT (trans);
+
+  GST_DEBUG_OBJECT (self, "received sink event");
 
   switch (GST_EVENT_TYPE (event)) {
     case GST_EVENT_PROTECTION:

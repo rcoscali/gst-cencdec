@@ -11,7 +11,7 @@ if len(bin_kid)!=16:
     print('ERROR: KID is not 16 bytes long')
     sys.exit(2)
 
-id_str = ':'.join(['urn','marlin','kid',binascii.hexlify(bin_kid)])
+id_str = ':'.join(['urn','69f908af-4816-46ea-910c-cd5dcccb0a3a','kid',binascii.hexlify(bin_kid)])
 print(id_str)
 filename = os.path.join('/tmp',hashlib.sha1(id_str).hexdigest()) + '.key'
 print(filename)
