@@ -342,7 +342,7 @@ gst_cenc_decrypt_transform_caps (GstBaseTransform * base,
 
       out = gst_structure_copy (tmp);
       gst_structure_set (out,
-          "protection-system", G_TYPE_STRING, "69f908af-4816-46ea-910c-cd5dcccb0a3a",
+          "protection-system", G_TYPE_STRING, "5e629af5-38da-4063-8977-97ffbd9902d4",
           "original-media-type", G_TYPE_STRING, gst_structure_get_name (in),
           NULL);
 
@@ -398,7 +398,7 @@ gst_cenc_create_content_id (gconstpointer key_id)
   gchar *id_string = g_malloc0 (id_string_length);
 
   g_snprintf (id_string, id_string_length,
-      "urn:69f908af-4816-46ea-910c-cd5dcccb0a3a:kid:%02x%02x%02x%02x%02x%02x%02x%02x"
+      "urn:00000000-0000-0000-0000-000000000000:kid:%02x%02x%02x%02x%02x%02x%02x%02x"
       "%02x%02x%02x%02x%02x%02x%02x%02x",
       id[0], id[1], id[2], id[3], id[4], id[5], id[6], id[7],
       id[8], id[9], id[10], id[11], id[12], id[13], id[14], id[15]);
@@ -415,12 +415,15 @@ gst_cenc_decrypt_key_id_from_content_id(GstCencDecrypt * self, const gchar *cont
   guint i,pos;
   gchar *id_string;
 
-  if(!g_str_has_prefix (content_id, "urn:69f908af-4816-46ea-910c-cd5dcccb0a3a:kid:")){
-    return NULL;
-  }
+  if(!g_str_has_prefix (content_id, "urn:69f908af-4816-46ea-910c-cd5dcccb0a3a:kid:") &&
+     !g_str_has_prefix (content_id, "urn:5e629af5-38da-4063-8977-97ffbd9902d4:kid:") &&
+     !g_str_has_prefix (content_id, "urn:00000000-0000-0000-0000-000000000000:kid:"))
+    {
+      return NULL;
+    }
   kid = gst_buffer_new_allocate (NULL, KID_LENGTH, NULL);
   gst_buffer_map (kid, &map, GST_MAP_READWRITE);
-  for(i=0, pos=strlen("urn:69f908af-4816-46ea-910c-cd5dcccb0a3a:kid:"); i<KID_LENGTH; ++i){
+  for(i=0, pos=45; i<KID_LENGTH; ++i){
     guint b;
     if(!sscanf(&content_id[pos], "%02x", &b)){
       failed=TRUE;
@@ -468,7 +471,7 @@ gst_cenc_decrypt_get_key (GstCencDecrypt * self, GstBuffer * key_id)
   /*  g_free (content_id);*/
 
   /* Read contents of file with the hash as its name. */
-  path = g_strconcat ("/tmp/", hash_string, ".key", NULL);
+  path = g_strconcat ("./", hash_string, ".key", NULL);
   g_free (hash_string);
   GST_DEBUG_OBJECT (self, "Opening file: %s", path);
   key_file = fopen (path, "rb");
@@ -523,15 +526,14 @@ gst_cenc_decrypt_lookup_key (GstCencDecrypt * self, GstBuffer * kid)
   int i;
   gsize sz;
 
-  /*
-    GstMapInfo info;
-    gchar *id_string;
-    gst_buffer_map (kid, &info, GST_MAP_READ);
-    id_string = gst_cenc_create_uuid_string (info.data);
-    GST_DEBUG_OBJECT (self, "Looking up key ID: %s", id_string);
-    g_free (id_string);
-    gst_buffer_unmap (kid, &info);
-  */
+  GstMapInfo info;
+  gchar *id_string;
+  gst_buffer_map (kid, &info, GST_MAP_READ);
+  id_string = gst_cenc_create_uuid_string (info.data);
+  GST_DEBUG_OBJECT (self, "Looking up key ID: %s", id_string);
+  g_free (id_string);
+  gst_buffer_unmap (kid, &info);
+
   for (i = 0; kp==NULL && i < self->keys->len; ++i) {
     const GstCencKeyPair *k;
     k = g_ptr_array_index (self->keys, i);
@@ -542,6 +544,14 @@ gst_cenc_decrypt_lookup_key (GstCencDecrypt * self, GstBuffer * kid)
   if (!kp) {
     kp = gst_cenc_decrypt_get_key (self, kid);
   }
+
+  gchar *key = (gchar *)g_bytes_get_data (kp->key, 16);
+  GST_DEBUG_OBJECT (self, 
+		    "key = %02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+		    key[0], key[1], key[2], key[3],
+		    key[4], key[5], key[6], key[7],
+		    key[8], key[9], key[10], key[11],
+		    key[12], key[13], key[14], key[15]);
 
   return kp;
 }
@@ -587,7 +597,7 @@ gst_cenc_decrypt_transform_ip (GstBaseTransform * base, GstBuffer * buf)
     goto release;
   }
 
-  GST_TRACE_OBJECT (self, "Number of samples to decrypt: %d", map.size);
+  GST_TRACE_OBJECT (self, "Number of samples to decrypt: %lu", map.size);
   if(!gst_structure_get_uint(prot_meta->info,"iv_size",&iv_size)){
     GST_ERROR_OBJECT (self, "failed to get iv_size");
     ret = GST_FLOW_NOT_SUPPORTED;
@@ -689,11 +699,11 @@ gst_cenc_decrypt_transform_ip (GstBaseTransform * base, GstBuffer * buf)
       n_bytes_clear = 0;
       n_bytes_encrypted = map.size - pos;
     }
-    GST_TRACE_OBJECT (self, "%d bytes clear (todo=%d)", n_bytes_clear,
+    GST_TRACE_OBJECT (self, "%d bytes clear (todo=%lu)", n_bytes_clear,
         map.size - pos);
     pos += n_bytes_clear;
     if (n_bytes_encrypted) {
-      GST_TRACE_OBJECT (self, "%d bytes encrypted (todo=%d)",
+      GST_TRACE_OBJECT (self, "%d bytes encrypted (todo=%lu)",
           n_bytes_encrypted, map.size - pos);
       gst_aes_ctr_decrypt_ip (state, map.data + pos, n_bytes_encrypted);
       pos += n_bytes_encrypted;
