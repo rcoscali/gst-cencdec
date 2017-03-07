@@ -526,7 +526,6 @@ gst_cenc_decrypt_lookup_key (GstCencDecrypt * self, GstBuffer * kid)
   int i;
   gsize sz;
 
-  GstMapInfo info;
   gchar *id_string;
   gst_buffer_map (kid, &info, GST_MAP_READ);
   id_string = gst_cenc_create_uuid_string (info.data);
